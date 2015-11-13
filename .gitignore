@@ -1,0 +1,20 @@
+*.class
+.project
+.settings/
+.classpath
+.svn/
+.DS_Store
+.idea/
+release/
+target/
+**/temp/**
+**/build/**
+**/target/**
+**/release/**
+
+# Package Files #
+*.jar
+*.war
+*.ear
+*.iml
+

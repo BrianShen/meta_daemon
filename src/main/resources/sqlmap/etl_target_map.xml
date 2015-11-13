@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fanli.metadata.core.dao.MetaTargetDao">
+    <resultMap id="tableMap" type="com.fanli.metadata.core.bean.EtlMetaTableBase">
+        <id column="global_table_id" jdbcType="INTEGER" property="globalTableId" />
+        <result column="hive_table_id" jdbcType="INTEGER" property="hiveTableId"/>
+        <result column="job_id" jdbcType="INTEGER" property="jobId" />
+        <result column="table_name" jdbcType="VARCHAR" property="tableName" />
+        <result column="domain" jdbcType="VARCHAR" property="domain" />
+        <result column="db" jdbcType="VARCHAR" property="db" />
+        <result column="schema" jdbcType="VARCHAR" property="schema" />
+        <result column="storage_type" jdbcType="VARCHAR" property="storageType" />
+        <result column="developer" jdbcType="VARCHAR" property="developer" />
+        <result column="owner" jdbcType="VARCHAR" property="owner" />
+        <result column="table_comment" jdbcType="LONGVARCHAR" property="tableComment" />
+        <result column="task_status" jdbcType="INTEGER" property="taskStatus" />
+        <result column="refresh_type" jdbcType="VARCHAR" property="refreshType" />
+        <result column="refresh_offset" jdbcType="VARCHAR" property="refreshOffset" />
+        <result column="refresh_cycle" jdbcType="VARCHAR" property="refreshCycle" />
+        <result column="status" jdbcType="TINYINT" property="status" />
+        <result column="is_partition_table" jdbcType="TINYINT" property="isPartitionTable" />
+        <result column="data_last_refresh_time" jdbcType="TIMESTAMP" property="dataLastRefreshTime" />
+        <result column="table_access_code" jdbcType="INTEGER" property="tableAccessCode" />
+        <result column="add_time" jdbcType="TIMESTAMP" property="addTime" />
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    </resultMap>
+
+    <select id="queryTableIds" resultType="java.lang.Integer">
+        SELECT
+        hive_table_id
+        FROM etl_meta_table_base WHERE status = 1
+    </select>
+
+    <update id="updateStatusByTableId" parameterType="map">
+        UPDATE etl_meta_table_base SET status=#{status}
+        WHERE hive_table_id=#{tableId}
+    </update>
+    <!--<insert id="savePartitionsIgnoreExists" parameterType="com.fanli.metadata.core.bean.EtlMetaPartition">-->
+        <!--INSERT IGNORE INTO etl_meta_partition (partition_id,partition_name,partition_create_time,table_id,add_time)-->
+        <!--VALUES #{partitionId},#{partitionName},#{partitionCreateTime},#{tableId},#{addTime}-->
+    <!--</insert>-->
+
+    <insert id="savePartitionsIgnoreExists" parameterType="list">
+    INSERT IGNORE INTO etl_meta_partition (partition_id,partition_name,partition_create_time,table_id,add_time) VALUES
+    <foreach collection="list" item="item" index="index" separator=",">
+    (#{item.partitionId},#{item.partitionName},#{item.partitionCreateTime},#{item.tableId},#{item.addTime})
+    </foreach>
+    </insert>
+
+
+    <insert id="saveTableBase" parameterType="com.fanli.metadata.core.bean.EtlMetaTableBase" useGeneratedKeys="true"
+            keyProperty="globalTableId">
+        INSERT INTO etl_meta_table_base(hive_table_id,table_name,db,storage_type,table_comment,status,is_partition_table,add_time,update_time)
+        VALUES
+            (#{hiveTableId},#{tableName},#{db},#{storageType},#{tableComment},#{status},#{isPartitionTable},#{addTime},#{updateTime})
+    </insert>
+
+    <insert id="saveColumn" parameterType="com.fanli.metadata.core.bean.EtlMetaColumn">
+        INSERT INTO etl_meta_column(global_id,table_id,column_name,column_index,column_type,column_comment,is_partition,add_time,update_time)
+        VALUES
+        (#{globalId},#{tableId},#{columnName},#{columnIndex},#{columnType},#{columnComment},#{isPartition},#{addTime},#{updateTime})
+    </insert>
+
+    <insert id="saveHiveSpecialMetadata" parameterType="com.fanli.metadata.core.bean.EtlMetaHiveTable">
+        INSERT INTO etl_meta_hivetable (table_id,global_id,hive_db,input_format,output_format,hdfs_location,table_type,field_terminated,line_terminated)
+        VALUES (#{tableId},#{globalId},#{hiveDb},#{inputFormat},#{outputFormat},#{hdfsLocation},#{tableType},#{fieldTerminated},#{lineTerminated})
+    </insert>
+
+    <insert id="savePartition" parameterType="com.fanli.metadata.core.bean.EtlMetaPartition">
+        INSERT IGNORE INTO etl_meta_partition (partition_id,partition_name,partition_create_time,table_id,add_time) VALUES
+        (#{partitionId},#{partitionName},#{partitionCreateTime},#{tableId},#{addTime})
+    </insert>
+    <!--<insert id="saveMetaBatch" parameterType="list" useGeneratedKeys="true"-->
+    <!--keyProperty="globalTableId">-->
+    <!--INSERT INTO etl_meta_table_base(hive_table_id,table_name,db,storage_type,table_comment,is_partition_table,add_time,update_time)-->
+    <!--VALUES-->
+    <!--<foreach collection="list" item="item" index="index"-->
+    <!--separator=",">-->
+    <!--(#{hiveTableId},#{tableName},#{db},#{storageType},#{tableComment},#{isPartitionTable},#{addTime},#{updateTime})-->
+    <!--</foreach>-->
+    <!--</insert>-->
+
+    <!--<insert id="saveColumnsBatch" parameterType="list" useGeneratedKeys="true"-->
+    <!--keyColumn="column_id" keyProperty="columnId">-->
+    <!--INSERT INTO etl_meta_column(global_id,table_id,column_name,column_index,column_type,column_comment,is_partition,add_time,update_time)-->
+    <!--VALUES-->
+    <!--<foreach collection="list" item="item" index="index"-->
+    <!--separator=",">-->
+    <!--(#{globalId},#{tableId},#{columnName},#{columnIndex},#{columnType},#{columnComment},#{isPartition},#{addTime},#{updateTime})-->
+    <!--</foreach>-->
+    <!--</insert>-->
+
+    <!--<insert id="saveHiveSpecialMetadata" parameterType="com.fanli.metadata.core.bean.EtlMetaHiveTable">-->
+    <!--INSERT INTO etl_meta_hivetable (table_id,global_id,hive_db,input_format,output_format,hdfs_location,table_type,field_terminated,line_terminated)-->
+    <!--VALUES (#{tableId},#{globalId},#{hiveDb},#{inputFormat},#{outputFormat},#{hdfsLocation},#{tableType},#{fieldTerminated},#{lineTerminated})-->
+    <!--</insert>-->
+
+    <!--<insert id="savePartitions" parameterType="list">-->
+    <!--INSERT INTO etl_meta_partition (partition_id,partition_name,partition_create_time,table_id,add_time) VALUES-->
+    <!--<foreach collection="list" item="item" index="index"-->
+    <!--separator=",">-->
+    <!--(#{partitionId},#{partitionName},#{partitionCreateTime},#{tableId},#{addTime})-->
+    <!--</foreach>-->
+    <!--</insert>-->
+    <!--<insert id="saveMetaBatch" useGeneratedKeys="true" keyColumn="global_table_id" keyProperty="globalTableId"-->
+    <!--parameterType="java.util.List">-->
+    <!--INSERT INTO etl_meta_table_base-->
+    <!--<trim prefix="(" suffix=")" suffixOverrides=",">-->
+    <!--<if test="global_table_id != null">-->
+    <!--global_table_id,-->
+    <!--</if>-->
+    <!--<if test="hive_table_id != null">-->
+    <!--hive_table_id,-->
+    <!--</if>-->
+    <!--<if test="job_id != null">-->
+    <!--job_id,-->
+    <!--</if>-->
+    <!--<if test="table_name != null">-->
+    <!--table_name,-->
+    <!--</if>-->
+    <!--<if test="domain != null">-->
+    <!--domain,-->
+    <!--</if>-->
+    <!--<if test="db != null">-->
+    <!--db,-->
+    <!--</if>-->
+    <!--<if test="schema != null">-->
+    <!--schema,-->
+    <!--</if>-->
+    <!--<if test="storage_type != null">-->
+    <!--storage_type,-->
+    <!--</if>-->
+    <!--<if test="developer != null">-->
+    <!--developer,-->
+    <!--</if>-->
+    <!--<if test="owner != null">-->
+    <!--owner,-->
+    <!--</if>-->
+    <!--<if test="table_comment != null">-->
+    <!--table_comment,-->
+    <!--</if>-->
+    <!--<if test="task_status != null">-->
+    <!--task_status,-->
+    <!--</if>-->
+    <!--<if test="refresh_type != null">-->
+    <!--refresh_type,-->
+    <!--</if>-->
+    <!--<if test="refresh_offset != null">-->
+    <!--refresh_offset,-->
+    <!--</if>-->
+    <!--<if test="refresh_cycle != null">-->
+    <!--refresh_cycle,-->
+    <!--</if>-->
+    <!--<if test="status != null">-->
+    <!--status,-->
+    <!--</if>-->
+    <!--<if test="is_partition_table != null">-->
+    <!--is_partition_table,-->
+    <!--</if>-->
+    <!--<if test="data_last_refresh_time != null">-->
+    <!--data_last_refresh_time,-->
+    <!--</if>-->
+    <!--<if test="table_access_code != null">-->
+    <!--table_access_code,-->
+    <!--</if>-->
+    <!--<if test="add_time != null">-->
+    <!--add_time,-->
+    <!--</if>-->
+    <!--<if test="update_time != null">-->
+    <!--update_time,-->
+    <!--</if>-->
+    <!--</trim>-->
+    <!--<foreach collection ="list" item ="item" index ="index" separator =",">-->
+    <!--<trim prefix="values (" suffix=")" suffixOverrides=",">-->
+    <!--<if test="global_table_id != null">-->
+    <!--#{global_table_id},-->
+    <!--</if>-->
+    <!--<if test="hive_table_id != null">-->
+    <!--#{hive_table_id},-->
+    <!--</if>-->
+    <!--<if test="job_id != null">-->
+    <!--#{job_id},-->
+    <!--</if>-->
+    <!--<if test="table_name != null">-->
+    <!--#{table_name},-->
+    <!--</if>-->
+    <!--<if test="domain != null">-->
+    <!--#{domain},-->
+    <!--</if>-->
+    <!--<if test="db != null">-->
+    <!--#{db},-->
+    <!--</if>-->
+    <!--<if test="schema != null">-->
+    <!--#{schema},-->
+    <!--</if>-->
+    <!--<if test="storage_type != null">-->
+    <!--#{storage_type},-->
+    <!--</if>-->
+    <!--<if test="developer != null">-->
+    <!--#{developer},-->
+    <!--</if>-->
+    <!--<if test="owner != null">-->
+    <!--#{owner},-->
+    <!--</if>-->
+    <!--<if test="table_comment != null">-->
+    <!--#{table_comment},-->
+    <!--</if>-->
+    <!--<if test="task_status != null">-->
+    <!--#{task_status},-->
+    <!--</if>-->
+    <!--<if test="refresh_type != null">-->
+    <!--#{refresh_type},-->
+    <!--</if>-->
+    <!--<if test="refresh_offset != null">-->
+    <!--#{refresh_offset},-->
+    <!--</if>-->
+    <!--<if test="refresh_cycle != null">-->
+    <!--#{refresh_cycle},-->
+    <!--</if>-->
+    <!--<if test="status != null">-->
+    <!--#{status},-->
+    <!--</if>-->
+    <!--<if test="is_partition_table != null">-->
+    <!--#{is_partition_table},-->
+    <!--</if>-->
+    <!--<if test="data_last_refresh_time != null">-->
+    <!--#{data_last_refresh_time},-->
+    <!--</if>-->
+    <!--<if test="table_access_code != null">-->
+    <!--#{table_access_code},-->
+    <!--</if>-->
+    <!--<if test="add_time != null">-->
+    <!--#{add_time},-->
+    <!--</if>-->
+    <!--<if test="update_time != null">-->
+    <!--#{update_time},-->
+    <!--</if>-->
+    <!--</trim>-->
+    <!--</foreach>-->
+
+    <!--</insert>-->
+
+</mapper>

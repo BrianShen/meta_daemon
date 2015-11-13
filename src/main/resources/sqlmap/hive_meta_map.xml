@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fanli.metadata.core.dao.MetaSourceDao">
+    <resultMap id="BaseResultMap" type="com.fanli.metadata.core.bean.EtlMetaTableBase">
+        <id column="global_table_id" jdbcType="INTEGER" property="globalTableId" />
+        <result column="hive_table_id" jdbcType="INTEGER" property="hiveTableId"/>
+        <result column="job_id" jdbcType="INTEGER" property="jobId" />
+        <result column="table_name" jdbcType="VARCHAR" property="tableName" />
+        <result column="domain" jdbcType="VARCHAR" property="domain" />
+        <result column="db" jdbcType="VARCHAR" property="db" />
+        <result column="schema" jdbcType="VARCHAR" property="schema" />
+        <result column="storage_type" jdbcType="VARCHAR" property="storageType" />
+        <result column="developer" jdbcType="VARCHAR" property="developer" />
+        <result column="owner" jdbcType="VARCHAR" property="owner" />
+        <result column="table_comment" jdbcType="LONGVARCHAR" property="tableComment" />
+        <result column="task_status" jdbcType="INTEGER" property="taskStatus" />
+        <result column="refresh_type" jdbcType="VARCHAR" property="refreshType" />
+        <result column="refresh_offset" jdbcType="VARCHAR" property="refreshOffset" />
+        <result column="refresh_cycle" jdbcType="VARCHAR" property="refreshCycle" />
+        <result column="status" jdbcType="TINYINT" property="status" />
+        <result column="is_partition_table" jdbcType="TINYINT" property="isPartitionTable" />
+        <result column="data_last_refresh_time" jdbcType="TIMESTAMP" property="dataLastRefreshTime" />
+        <result column="table_access_code" jdbcType="INTEGER" property="tableAccessCode" />
+        <result column="add_time" jdbcType="TIMESTAMP" property="addTime" />
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    </resultMap>
+
+    <resultMap id="ColumnResultMap" type="com.fanli.metadata.core.bean.EtlMetaColumn" >
+        <id column="column_id" jdbcType="INTEGER" property="columnId"/>
+        <result column="global_id" property="globalId" jdbcType="INTEGER" />
+        <result column="table_id" property="tableId" jdbcType="INTEGER" />
+        <result column="column_name" property="columnName" jdbcType="VARCHAR" />
+        <result column="column_index" property="columnIndex" jdbcType="INTEGER" />
+        <result column="column_type" property="columnType" jdbcType="VARCHAR" />
+        <result column="column_comment" property="columnComment" jdbcType="VARCHAR" />
+        <result column="default_value" property="defaultValue" jdbcType="VARCHAR" />
+        <result column="column_access_code" property="columnAccessCode" jdbcType="INTEGER" />
+        <result column="is_primary" property="isPrimary" jdbcType="TINYINT" />
+        <result column="is_foreign" property="isForeign" jdbcType="TINYINT" />
+        <result column="is_partition" property="isPartition" jdbcType="TINYINT" />
+        <result column="hot_level" property="hotLevel" jdbcType="INTEGER" />
+        <result column="add_time" property="addTime" jdbcType="TIMESTAMP" />
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+        <result column="last_update_user" property="lastUpdateUser" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <resultMap id="HiveTableResultMap" type="com.fanli.metadata.core.bean.EtlMetaHiveTable" >
+        <id column="table_id" property="tableId" jdbcType="INTEGER" />
+        <result column="global_id" property="globalId" jdbcType="INTEGER" />
+        <result column="hive_db" property="hiveDb" jdbcType="VARCHAR" />
+        <result column="input_format" property="inputFormat" jdbcType="VARCHAR" />
+        <result column="output_format" property="outputFormat" jdbcType="VARCHAR" />
+        <result column="hdfs_location" property="hdfsLocation" jdbcType="VARCHAR" />
+        <result column="table_type" property="tableType" jdbcType="VARCHAR" />
+        <result column="ddl_with_change" property="ddlWithChange" jdbcType="LONGVARCHAR" />
+        <result column="field_terminated" property="fieldTerminated" jdbcType="VARCHAR" />
+        <result column="line_terminated" property="lineTerminated" jdbcType="VARCHAR" />
+        <result column="store_format" property="storeFormat" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <resultMap id="PartitionResultMap" type="com.fanli.metadata.core.bean.EtlMetaPartition" >
+        <id column="partition_id" property="partitionId" jdbcType="INTEGER" />
+        <result column="partition_name" property="partitionName" jdbcType="VARCHAR" />
+        <result column="partition_create_time" property="partitionCreateTime" jdbcType="VARCHAR" />
+        <result column="table_id" property="tableId" jdbcType="INTEGER" />
+        <result column="add_time" property="addTime" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryTableByHiveTableId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        a.tbl_id AS hive_table_id,
+        from_unixtime(a.create_time) AS add_time,
+        "hive" AS storage_type,
+        b.name AS db,
+        a.tbl_name AS table_name,
+        c.param_value AS table_comment,
+        CASE WHEN d.tbl_id is NULL THEN 0 ELSE 1 END AS is_partition_table
+        FROM (SELECT * FROM tbls a WHERE a.tbl_id=#{tableId}) a
+        LEFT OUTER JOIN dbs b
+        ON a.db_id=b.db_id
+        LEFT OUTER JOIN table_params c
+        ON a.tbl_id=c.tbl_id AND c.param_key="comment"
+        LEFT OUTER JOIN (SELECT DISTINCT tbl_id FROM partition_keys) d
+        ON a.tbl_id=d.tbl_id
+    </select>
+
+    <select id="queryAllTableIds" resultType="java.lang.Integer">
+      SELECT
+       a.tbl_id AS hive_table_id
+      FROM tbls a
+       LEFT OUTER JOIN dbs b
+        ON a.db_id=b.db_id
+      WHERE a.db_id IN (252,253,254,266) ORDER BY a.tbl_id
+
+    </select>
+
+    <select id="queryAllTables" resultMap="BaseResultMap">
+        SELECT
+        a.tbl_id AS hive_table_id,
+        from_unixtime(a.create_time) AS add_time,
+        "hive" AS storage_type,
+        b.name AS db,
+        a.tbl_name AS table_name,
+        c.param_value AS table_comment,
+        CASE WHEN d.tbl_id is NULL THEN 0 ELSE 1 END AS is_partition_table
+        FROM tbls a
+        LEFT OUTER JOIN dbs b
+        ON a.db_id=b.db_id
+        LEFT OUTER JOIN table_params c
+        ON a.tbl_id=c.tbl_id AND c.param_key="comment"
+        LEFT OUTER JOIN (SELECT DISTINCT tbl_id FROM partition_keys) d
+        ON a.tbl_id=d.tbl_id
+        WHERE a.db_id IN (252,253,254,266) ORDER BY a.tbl_id
+    </select>
+
+    <select id="queryColumnsByTableId" parameterType="java.lang.Integer" resultMap="ColumnResultMap">
+      SELECT * FROM
+      (SELECT
+      c.tbl_id AS table_id,
+      a.column_name AS column_name,
+      a.integer_idx AS column_index,
+      a.type_name AS column_type,
+      a.comment AS column_comment,
+      0 AS is_partition
+      FROM columns_v2  a
+      LEFT OUTER JOIN sds b
+      ON a.cd_id=b.cd_id
+      LEFT OUTER JOIN tbls c
+      ON b.sd_id=c.sd_id
+      WHERE c.tbl_id=#{tableId}
+      UNION ALL
+      SELECT
+      a.tbl_id AS table_id,
+      a.pkey_name AS column_name,
+      a.integer_idx AS column_index,
+      a.pkey_type AS column_type,
+      a.pkey_comment AS column_comment,
+      1 AS is_partition
+      FROM partition_keys a
+      WHERE a.tbl_id=#{tableId}
+      ) a
+
+    </select>
+
+    <select id="queryHiveSpecialInfo" parameterType="java.lang.Integer" resultMap="HiveTableResultMap">
+        SELECT
+        a.tbl_id AS table_id,
+        c.name AS hive_db,
+        b.input_format AS input_format,
+        b.output_format AS output_format,
+        b.location AS hdfs_location,
+        a.tbl_type AS table_type,
+        d.param_value AS field_terminated,
+        e.param_value AS line_terminated
+        FROM (select * from tbls where tbl_id=#{tableId}) a
+        LEFT OUTER JOIN sds b
+        ON a.sd_id=b.sd_id
+        LEFT OUTER JOIN dbs c
+        ON a.db_id=c.db_id
+        LEFT OUTER JOIN (SELECT * FROM serde_params WHERE param_key="field.delim") d
+        ON b.serde_id=d.serde_id
+        LEFT OUTER JOIN (SELECT * FROM serde_params WHERE param_key="line.delim") e
+        ON b.serde_id=e.serde_id
+    </select>
+
+    <select id="querypartitionsByTableId" parameterType="java.lang.Integer" resultMap="PartitionResultMap">
+      SELECT
+      part_id AS partition_id,
+      part_name AS partition_name,
+      create_time AS partition_create_time,
+      tbl_id AS table_id
+      FROM partitions WHERE tbl_id=#{tableId}
+    </select>
+
+    <select id="queryAllPartitions" resultMap="PartitionResultMap">
+      SELECT
+      part_id AS partition_id,
+      part_name AS partition_name,
+      create_time AS partition_create_time,
+      tbl_id AS table_id
+      FROM partitions WHERE tbl_id in (SELECT tbl_id FROM tbls a WHERE a.db_id in (252,253,254,266))
+    </select>
+
+
+</mapper>
